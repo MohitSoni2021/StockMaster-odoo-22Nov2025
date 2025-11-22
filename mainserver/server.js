@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import warehouseRoutes from './routes/warehouseRoutes.js';
 import locationRoutes from './routes/locationRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import stockBalanceRoutes from './routes/stockBalanceRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +57,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/warehouses', warehouseRoutes);
 app.use('/api/v1/locations', locationRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/stock-balances', stockBalanceRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -37,6 +37,20 @@ const Navbar = () => {
               >
                 Location
               </Link>
+              <Link
+                href='/product'
+                className='block px-4 py-2 hover:bg-gray-100'
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                Product
+              </Link>
+              <Link
+                href='/stock-balance'
+                className='block px-4 py-2 hover:bg-gray-100'
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                Stock Balance
+              </Link>
             </div>
           )}
         </div>
