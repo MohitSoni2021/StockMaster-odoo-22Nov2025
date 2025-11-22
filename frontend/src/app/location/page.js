@@ -50,12 +50,13 @@ const Location = () => {
   }
 
   useEffect(() => {
-    if (formData.warehouse && !editingId) {
+    if (formData.warehouse && !editingId && !formData.shortCode) {
       const selectedWarehouse = warehouses.find(w => w._id === formData.warehouse)
-      if (selectedWarehouse && !formData.shortCode) {
+      if (selectedWarehouse) {
+        const timestamp = Date.now().toString().slice(-6)
         setFormData(prev => ({
           ...prev,
-          shortCode: selectedWarehouse.shortCode
+          shortCode: `${selectedWarehouse.shortCode}-LOC${timestamp}`.toUpperCase()
         }))
       }
     }

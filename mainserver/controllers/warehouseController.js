@@ -85,6 +85,41 @@ export const getWarehouse = async (req, res, next) => {
   }
 };
 
+// @desc    Get warehouse with all locations
+// @route   GET /api/v1/warehouses/:id/details
+// @access  Private
+export const getWarehouseDetails = async (req, res, next) => {
+  try {
+    const Location = (await import('../models/Location.js')).default;
+    
+    const warehouse = await Warehouse.findById(req.params.id).populate({
+      path: 'addresses',
+      model: 'Location'
+    });
+
+    if (!warehouse) {
+      return res.status(404).json({
+        success: false,
+        message: 'Warehouse not found'
+      });
+    }
+
+    const locations = warehouse.addresses || [];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        warehouse,
+        locations: locations,
+        locationCount: locations.length,
+        activeLocationCount: locations.filter(loc => loc.isActive).length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Create new warehouse
 // @route   POST /api/v1/warehouses
 // @access  Private

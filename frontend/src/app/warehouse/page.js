@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import Navbar from '../../components/Navbar'
 
 const Warehouse = () => {
@@ -324,8 +325,15 @@ const Warehouse = () => {
               </thead>
               <tbody>
                 {warehouses.map(warehouse => (
-                  <tr key={warehouse._id} className='border-t'>
-                    <td className='px-4 py-2 font-medium'>{warehouse.name}</td>
+                  <tr key={warehouse._id} className='border-t hover:bg-gray-50 cursor-pointer transition'>
+                    <td className='px-4 py-2 font-medium'>
+                      <Link
+                        href={`/warehouse/${warehouse._id}`}
+                        className='text-blue-600 hover:text-blue-800 hover:underline'
+                      >
+                        {warehouse.name}
+                      </Link>
+                    </td>
                     <td className='px-4 py-2 font-mono text-sm bg-gray-50'>{warehouse.shortCode}</td>
                     <td className='px-4 py-2'>{warehouse.address?.city}</td>
                     <td className='px-4 py-2'>{warehouse.address?.state}</td>
