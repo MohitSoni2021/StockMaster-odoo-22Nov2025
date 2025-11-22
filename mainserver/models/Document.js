@@ -52,6 +52,18 @@ const documentSchema = new mongoose.Schema({
     ref: 'Warehouse',
     required: [true, 'Please select a warehouse']
   },
+  from: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contact'
+  },
+  to: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contact'
+  },
+  toWarehouse: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Warehouse'
+  },
   fromLocation: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location'

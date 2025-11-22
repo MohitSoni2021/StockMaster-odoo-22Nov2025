@@ -22,6 +22,7 @@ const MoveHistory = () => {
 
   const [formData, setFormData] = useState({
     warehouse: '',
+    toWarehouse: '',
     scheduleDate: '',
     notes: '',
     meta: {}
@@ -54,7 +55,12 @@ const MoveHistory = () => {
     e.preventDefault()
 
     if (!formData.warehouse) {
-      alert('Please select a warehouse')
+      alert('Please select a source warehouse')
+      return
+    }
+
+    if (!formData.toWarehouse) {
+      alert('Please select a destination warehouse')
       return
     }
 
@@ -63,6 +69,7 @@ const MoveHistory = () => {
       const payload = {
         type: 'TRANSFER',
         warehouse: formData.warehouse,
+        toWarehouse: formData.toWarehouse,
         scheduleDate: formData.scheduleDate || undefined,
         notes: formData.notes || undefined,
         meta: formData.meta
@@ -72,6 +79,7 @@ const MoveHistory = () => {
       alert('Transfer created successfully!')
       setFormData({
         warehouse: '',
+        toWarehouse: '',
         scheduleDate: '',
         notes: '',
         meta: {}
@@ -268,7 +276,7 @@ const MoveHistory = () => {
                 <form onSubmit={handleCreateDocument} className='space-y-4'>
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div>
-                      <label className='block text-sm font-medium mb-1'>Warehouse *</label>
+                      <label className='block text-sm font-medium mb-1'>From Warehouse *</label>
                       <select
                         name='warehouse'
                         value={formData.warehouse}
@@ -276,7 +284,22 @@ const MoveHistory = () => {
                         className='w-full p-2 border border-gray-300 rounded-md'
                         required
                       >
-                        <option value=''>Select Warehouse</option>
+                        <option value=''>Select Source Warehouse</option>
+                        {warehouses.map(wh => (
+                          <option key={wh._id} value={wh._id}>{wh.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className='block text-sm font-medium mb-1'>To Warehouse *</label>
+                      <select
+                        name='toWarehouse'
+                        value={formData.toWarehouse}
+                        onChange={handleInputChange}
+                        className='w-full p-2 border border-gray-300 rounded-md'
+                        required
+                      >
+                        <option value=''>Select Destination Warehouse</option>
                         {warehouses.map(wh => (
                           <option key={wh._id} value={wh._id}>{wh.name}</option>
                         ))}
@@ -421,8 +444,12 @@ const MoveHistory = () => {
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pb-6 border-b'>
                 <div>
-                  <p className='text-sm text-gray-500'>Warehouse</p>
+                  <p className='text-sm text-gray-500'>From Warehouse</p>
                   <p className='text-lg font-medium'>{selectedDocument.warehouse?.name}</p>
+                </div>
+                <div>
+                  <p className='text-sm text-gray-500'>To Warehouse</p>
+                  <p className='text-lg font-medium'>{selectedDocument.toWarehouse?.name || '-'}</p>
                 </div>
                 <div>
                   <p className='text-sm text-gray-500'>Status</p>

@@ -22,6 +22,7 @@ const Receipt = () => {
 
   const [formData, setFormData] = useState({
     warehouse: '',
+    from: '',
     scheduleDate: '',
     notes: '',
     meta: {}
@@ -58,11 +59,17 @@ const Receipt = () => {
       return
     }
 
+    if (!formData.from) {
+      alert('Please select a contact to receive from')
+      return
+    }
+
     try {
       setSubmitLoading(true)
       const payload = {
         type: 'RECEIPT',
         warehouse: formData.warehouse,
+        from: formData.from,
         scheduleDate: formData.scheduleDate || undefined,
         notes: formData.notes || undefined,
         meta: formData.meta
@@ -72,6 +79,7 @@ const Receipt = () => {
       alert('Receipt created successfully!')
       setFormData({
         warehouse: '',
+        from: '',
         scheduleDate: '',
         notes: '',
         meta: {}
@@ -283,6 +291,21 @@ const Receipt = () => {
                       </select>
                     </div>
                     <div>
+                      <label className='block text-sm font-medium mb-1'>From (Contact) *</label>
+                      <select
+                        name='from'
+                        value={formData.from}
+                        onChange={handleInputChange}
+                        className='w-full p-2 border border-gray-300 rounded-md'
+                        required
+                      >
+                        <option value=''>Select Contact</option>
+                        {contacts.map(contact => (
+                          <option key={contact._id} value={contact._id}>{contact.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
                       <label className='block text-sm font-medium mb-1'>Schedule Date</label>
                       <input
                         type='datetime-local'
@@ -423,6 +446,10 @@ const Receipt = () => {
                 <div>
                   <p className='text-sm text-gray-500'>Warehouse</p>
                   <p className='text-lg font-medium'>{selectedDocument.warehouse?.name}</p>
+                </div>
+                <div>
+                  <p className='text-sm text-gray-500'>From (Contact)</p>
+                  <p className='text-lg font-medium'>{selectedDocument.from?.name || '-'}</p>
                 </div>
                 <div>
                   <p className='text-sm text-gray-500'>Status</p>

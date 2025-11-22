@@ -33,6 +33,9 @@ export const getDocuments = async (req, res, next) => {
 
     const documents = await Document.find(query)
       .populate('warehouse', 'name shortCode')
+      .populate('from', 'name email')
+      .populate('to', 'name email')
+      .populate('toWarehouse', 'name shortCode')
       .populate('contact', 'name email')
       .populate('createdBy', 'name email')
       .populate('validatedBy', 'name email')
@@ -65,6 +68,9 @@ export const getDocument = async (req, res, next) => {
   try {
     const document = await Document.findById(req.params.id)
       .populate('warehouse', 'name shortCode address')
+      .populate('from', 'name email mobileNo address type')
+      .populate('to', 'name email mobileNo address type')
+      .populate('toWarehouse', 'name shortCode address')
       .populate('fromLocation', 'name code')
       .populate('toLocation', 'name code')
       .populate('contact')
@@ -95,12 +101,33 @@ export const getDocument = async (req, res, next) => {
 
 export const createDocument = async (req, res, next) => {
   try {
-    const { type, warehouse, fromLocation, toLocation, contact, contactRef, scheduleDate, notes, meta, createdBy } = req.body;
+    const { type, warehouse, from, to, toWarehouse, fromLocation, toLocation, contact, contactRef, scheduleDate, notes, meta, createdBy } = req.body;
 
     if (!type || !warehouse) {
       return res.status(400).json({
         success: false,
         message: 'Type and warehouse are required'
+      });
+    }
+
+    if (type === 'RECEIPT' && !from) {
+      return res.status(400).json({
+        success: false,
+        message: 'For RECEIPT, "from" contact is required'
+      });
+    }
+
+    if (type === 'DELIVERY' && !to) {
+      return res.status(400).json({
+        success: false,
+        message: 'For DELIVERY, "to" contact is required'
+      });
+    }
+
+    if (type === 'TRANSFER' && !toWarehouse) {
+      return res.status(400).json({
+        success: false,
+        message: 'For TRANSFER, destination warehouse is required'
       });
     }
 
@@ -110,6 +137,9 @@ export const createDocument = async (req, res, next) => {
       reference,
       type,
       warehouse,
+      from,
+      to,
+      toWarehouse,
       fromLocation,
       toLocation,
       contact,
@@ -146,6 +176,9 @@ export const updateDocument = async (req, res, next) => {
         runValidators: true
       }
     ).populate('warehouse', 'name shortCode')
+     .populate('from', 'name email')
+     .populate('to', 'name email')
+     .populate('toWarehouse', 'name shortCode')
      .populate('createdBy', 'name email');
 
     if (!document) {
@@ -209,7 +242,11 @@ export const validateDocument = async (req, res, next) => {
         new: true,
         runValidators: true
       }
-    ).populate('validatedBy', 'name email');
+    ).populate('warehouse', 'name shortCode')
+     .populate('from', 'name email')
+     .populate('to', 'name email')
+     .populate('toWarehouse', 'name shortCode')
+     .populate('validatedBy', 'name email');
 
     if (!document) {
       return res.status(404).json({
@@ -243,7 +280,10 @@ export const updateDocumentStatus = async (req, res, next) => {
       req.params.id,
       { status },
       { new: true, runValidators: true }
-    ).populate('warehouse', 'name shortCode');
+    ).populate('warehouse', 'name shortCode')
+     .populate('from', 'name email')
+     .populate('to', 'name email')
+     .populate('toWarehouse', 'name shortCode');
 
     if (!document) {
       return res.status(404).json({

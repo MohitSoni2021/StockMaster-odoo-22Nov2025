@@ -23,6 +23,9 @@ const Document = () => {
   const [formData, setFormData] = useState({
     type: 'RECEIPT',
     warehouse: '',
+    from: '',
+    to: '',
+    toWarehouse: '',
     contact: null,
     scheduleDate: '',
     notes: '',
@@ -60,11 +63,29 @@ const Document = () => {
       return
     }
 
+    if (formData.type === 'RECEIPT' && !formData.from) {
+      alert('Please select a contact to receive from')
+      return
+    }
+
+    if (formData.type === 'DELIVERY' && !formData.to) {
+      alert('Please select a contact to deliver to')
+      return
+    }
+
+    if (formData.type === 'TRANSFER' && !formData.toWarehouse) {
+      alert('Please select a destination warehouse')
+      return
+    }
+
     try {
       setSubmitLoading(true)
       const payload = {
         type: formData.type,
         warehouse: formData.warehouse,
+        ...(formData.type === 'RECEIPT' && { from: formData.from }),
+        ...(formData.type === 'DELIVERY' && { to: formData.to }),
+        ...(formData.type === 'TRANSFER' && { toWarehouse: formData.toWarehouse }),
         scheduleDate: formData.scheduleDate || undefined,
         notes: formData.notes || undefined,
         meta: formData.meta
@@ -75,6 +96,9 @@ const Document = () => {
       setFormData({
         type: 'RECEIPT',
         warehouse: '',
+        from: '',
+        to: '',
+        toWarehouse: '',
         contact: null,
         scheduleDate: '',
         notes: '',
@@ -276,7 +300,7 @@ const Document = () => {
                     </select>
                   </div>
                   <div>
-                    <label className='block text-sm font-medium mb-1'>Warehouse *</label>
+                    <label className='block text-sm font-medium mb-1'>{formData.type === 'TRANSFER' ? 'From Warehouse' : 'Warehouse'} *</label>
                     <select
                       name='warehouse'
                       value={formData.warehouse}
@@ -291,6 +315,66 @@ const Document = () => {
                     </select>
                   </div>
                 </div>
+
+                {formData.type === 'RECEIPT' && (
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <label className='block text-sm font-medium mb-1'>From (Contact) *</label>
+                      <select
+                        name='from'
+                        value={formData.from}
+                        onChange={handleInputChange}
+                        className='w-full p-2 border border-gray-300 rounded-md'
+                        required
+                      >
+                        <option value=''>Select Contact</option>
+                        {contacts.map(contact => (
+                          <option key={contact._id} value={contact._id}>{contact.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {formData.type === 'DELIVERY' && (
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <label className='block text-sm font-medium mb-1'>To (Contact) *</label>
+                      <select
+                        name='to'
+                        value={formData.to}
+                        onChange={handleInputChange}
+                        className='w-full p-2 border border-gray-300 rounded-md'
+                        required
+                      >
+                        <option value=''>Select Contact</option>
+                        {contacts.map(contact => (
+                          <option key={contact._id} value={contact._id}>{contact.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {formData.type === 'TRANSFER' && (
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <label className='block text-sm font-medium mb-1'>To Warehouse *</label>
+                      <select
+                        name='toWarehouse'
+                        value={formData.toWarehouse}
+                        onChange={handleInputChange}
+                        className='w-full p-2 border border-gray-300 rounded-md'
+                        required
+                      >
+                        <option value=''>Select Destination Warehouse</option>
+                        {warehouses.map(wh => (
+                          <option key={wh._id} value={wh._id}>{wh.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
@@ -420,9 +504,27 @@ const Document = () => {
                   </div>
                 </div>
                 <div>
-                  <p className='text-sm text-gray-600'>Warehouse</p>
+                  <p className='text-sm text-gray-600'>{selectedDocument.type === 'TRANSFER' ? 'From Warehouse' : 'Warehouse'}</p>
                   <p className='font-medium'>{selectedDocument.warehouse?.name || '-'}</p>
                 </div>
+                {selectedDocument.type === 'RECEIPT' && (
+                  <div>
+                    <p className='text-sm text-gray-600'>From (Contact)</p>
+                    <p className='font-medium'>{selectedDocument.from?.name || '-'}</p>
+                  </div>
+                )}
+                {selectedDocument.type === 'DELIVERY' && (
+                  <div>
+                    <p className='text-sm text-gray-600'>To (Contact)</p>
+                    <p className='font-medium'>{selectedDocument.to?.name || '-'}</p>
+                  </div>
+                )}
+                {selectedDocument.type === 'TRANSFER' && (
+                  <div>
+                    <p className='text-sm text-gray-600'>To Warehouse</p>
+                    <p className='font-medium'>{selectedDocument.toWarehouse?.name || '-'}</p>
+                  </div>
+                )}
                 <div>
                   <p className='text-sm text-gray-600'>Created At</p>
                   <p className='font-medium'>{new Date(selectedDocument.createdAt).toLocaleString()}</p>
