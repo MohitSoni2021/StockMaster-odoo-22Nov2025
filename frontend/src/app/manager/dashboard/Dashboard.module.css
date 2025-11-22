@@ -1,0 +1,286 @@
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.dashboard h1 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 2rem;
+}
+
+.loading,
+.error {
+  padding: 40px;
+  text-align: center;
+  font-size: 1.1rem;
+  color: #666;
+  background: white;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.error {
+  color: #dc3545;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.kpiContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.kpiCard {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border-left: 4px solid #007bff;
+}
+
+.kpiCard:nth-child(2) {
+  border-left-color: #ffc107;
+}
+
+.kpiCard:nth-child(3) {
+  border-left-color: #28a745;
+}
+
+.kpiCard:nth-child(4) {
+  border-left-color: #17a2b8;
+}
+
+.kpiValue {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.kpiLabel {
+  color: #666;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.analyticsSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.statusBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.statusItem {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  align-items: center;
+  gap: 15px;
+}
+
+.statusLabel {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.statusBar {
+  height: 24px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.statusFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.count {
+  text-align: right;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.typeBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.typeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border-left: 3px solid #007bff;
+}
+
+.typeLabel {
+  font-weight: 600;
+  color: #333;
+}
+
+.typeCount {
+  background: #007bff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.inventorySection {
+  margin-bottom: 40px;
+}
+
+.inventorySection h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.inventoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.inventoryCard {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.inventoryLabel {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.inventoryValue {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.recentMovementsSection {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recentMovementsSection h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.movementsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.movementItem {
+  display: grid;
+  grid-template-columns: 40px 1fr 100px 150px;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-left: 3px solid #17a2b8;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.movementType {
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.movementDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product {
+  font-weight: 600;
+  color: #333;
+}
+
+.warehouse {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.movementQty {
+  font-weight: 600;
+  color: #007bff;
+  text-align: center;
+}
+
+.movementDate {
+  color: #999;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.noData {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .analyticsSection,
+  .inventoryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .movementItem {
+    grid-template-columns: 30px 1fr;
+    gap: 10px;
+  }
+
+  .movementQty,
+  .movementDate {
+    grid-column: 2;
+    text-align: left;
+  }
+}

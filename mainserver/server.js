@@ -10,6 +10,8 @@ import stockBalanceRoutes from './routes/stockBalanceRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import documentLineRoutes from './routes/documentLineRoutes.js';
+import stockLedgerRoutes from './routes/stockLedgerRoutes.js';
+import inventoryManagerRoutes from './routes/inventoryManagerRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +67,8 @@ app.use('/api/v1/stock-balances', stockBalanceRoutes);
 app.use('/api/v1/contacts', contactRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/document-lines', documentLineRoutes);
+app.use('/api/v1/stock-ledgers', stockLedgerRoutes);
+app.use('/api/v1/manager', inventoryManagerRoutes);
 
 // 404 handler
 app.use((req, res) => {
