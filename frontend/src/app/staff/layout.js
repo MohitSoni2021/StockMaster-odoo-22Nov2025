@@ -8,8 +8,7 @@ export const metadata = {
 export default function StaffLayout({ children }) {
   return (
     <>
-      <StaffNavbar />
-      <main style={{ padding: '20px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+      <main style={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
         {children}
       </main>
     </>

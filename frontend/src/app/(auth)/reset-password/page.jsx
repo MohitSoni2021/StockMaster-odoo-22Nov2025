@@ -1,5 +1,6 @@
 import { ApplicationDetails } from '@/Constants/ApplicationDetails';
 import ResetPasswordForm from './components/ResetPasswordForm';
+import { Suspense } from 'react';
 
 export const metadata = {
   title: `${ApplicationDetails.ApplicationName} | Reset Password`,
@@ -7,5 +8,9 @@ export const metadata = {
 };
 
 export default function ResetPassword() {
-  return <ResetPasswordForm />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
+  );
 }

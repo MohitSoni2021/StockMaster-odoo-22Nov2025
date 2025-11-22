@@ -1,4 +1,5 @@
 import ManagerNavbar from '@/components/ManagerNavbar';
+import ManagerSidebar from '@/components/ManagerSidebar';
 
 export const metadata = {
   title: 'Inventory Manager',
@@ -8,10 +9,12 @@ export const metadata = {
 export default function ManagerLayout({ children }) {
   return (
     <>
-      <ManagerNavbar />
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {children}
+  <main className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4 py-8 w-full">
+          <div className="grid grid-cols-[240px_1fr] gap-6 items-start">
+            <ManagerSidebar />
+            <div>{children}</div>
+          </div>
         </div>
       </main>
     </>

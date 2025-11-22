@@ -72,6 +72,15 @@ export default function AdminNavbar() {
             📍 Locations
           </Link>
 
+          <Link
+            href="/admin/receipts"
+            className={`px-4 py-2 rounded ${
+              isActive('/admin/receipts') ? 'bg-gray-700' : 'bg-gray-800 hover:bg-gray-700'
+            }`}
+          >
+            📋 Receipts
+          </Link>
+
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-red-700 rounded hover:bg-red-600"
@@ -124,6 +133,13 @@ export default function AdminNavbar() {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             📍 Locations
+          </Link>
+          <Link
+            href="/admin/receipts"
+            className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            📋 Receipts
           </Link>
           <Link
             href="/"

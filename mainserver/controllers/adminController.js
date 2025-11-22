@@ -1,4 +1,8 @@
 import User from '../models/User.js';
+import Document from '../models/Document.js';
+import Warehouse from '../models/Warehouse.js';
+import Product from '../models/Product.js';
+import Location from '../models/Location.js';
 import bcrypt from 'bcryptjs';
 
 export const createUser = async (req, res, next) => {
@@ -359,6 +363,201 @@ export const deleteUser = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'User deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Dashboard stats
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    // Get user counts
+    const totalUsers = await User.countDocuments();
+    const usersByRole = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]);
+
+    // Get warehouse count
+    const totalWarehouses = await Warehouse.countDocuments();
+
+    // Get product count
+    const totalProducts = await Product.countDocuments();
+
+    // Get location count
+    const totalLocations = await Location.countDocuments();
+
+    // Get document stats
+    const documentsByType = await Document.aggregate([
+      { $group: { _id: '$documentType', count: { $sum: 1 } } }
+    ]);
+
+    const documentsByStatus = await Document.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // Get recent documents
+    const recentDocuments = await Document.find()
+      .populate('createdBy', 'loginid')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalWarehouses,
+        totalProducts,
+        totalLocations,
+        usersByRole: usersByRole.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        documentsByType: documentsByType.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        documentsByStatus: documentsByStatus.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        recentDocuments,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Document management
+export const getAllDocuments = async (req, res, next) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      documentType,
+      status,
+      createdBy,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
+    const query = {};
+
+    if (documentType) query.documentType = documentType;
+    if (status) query.status = status;
+    if (createdBy) query.createdBy = createdBy;
+    if (search) {
+      query.$or = [
+        { documentNumber: { $regex: search, $options: 'i' } },
+        { 'sourceLocation.name': { $regex: search, $options: 'i' } },
+        { 'destinationLocation.name': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    const documents = await Document.find(query)
+      .populate('createdBy', 'loginid email')
+      .populate('sourceLocation', 'name type')
+      .populate('destinationLocation', 'name type')
+      .populate('warehouse', 'name')
+      .sort(sort)
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const totalDocuments = await Document.countDocuments(query);
+    const totalPages = Math.ceil(totalDocuments / limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        documents,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalDocuments,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDocumentById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const document = await Document.findById(id)
+      .populate('createdBy', 'loginid email role')
+      .populate('sourceLocation', 'name type address')
+      .populate('destinationLocation', 'name type address')
+      .populate('warehouse', 'name address')
+      .populate({
+        path: 'lines',
+        populate: {
+          path: 'product',
+          select: 'name sku description',
+        },
+      });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: document,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateDocumentStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    const validStatuses = ['draft', 'confirmed', 'in_progress', 'completed', 'cancelled'];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      });
+    }
+
+    const document = await Document.findByIdAndUpdate(
+      id,
+      {
+        status,
+        ...(notes && { notes: notes }),
+        ...(status === 'completed' && { completedAt: new Date() }),
+        ...(status === 'confirmed' && { confirmedAt: new Date() }),
+      },
+      { new: true }
+    ).populate('createdBy', 'loginid email');
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Document status updated to ${status}`,
+      data: document,
     });
   } catch (error) {
     next(error);

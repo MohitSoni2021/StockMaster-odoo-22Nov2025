@@ -284,8 +284,8 @@ export const adminApi = {
 
   documents: {
     getAll: async (params = {}) => {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${API_BASE_URL}/documents?${queryString}`, {
+      const query = new URLSearchParams(params).toString();
+      const response = await fetch(`${API_BASE_URL}/admin/documents?${query}`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -293,8 +293,8 @@ export const adminApi = {
       return response.json();
     },
 
-    getByType: async (type) => {
-      const response = await fetch(`${API_BASE_URL}/documents?type=${type}`, {
+    getById: async (id) => {
+      const response = await fetch(`${API_BASE_URL}/admin/documents/${id}`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -302,18 +302,24 @@ export const adminApi = {
       return response.json();
     },
 
-    updateStatus: async (id, status) => {
-      const response = await fetch(`${API_BASE_URL}/documents/${id}/status`, {
+    getByType: async (type, params = {}) => {
+      const query = new URLSearchParams({ ...params, documentType: type }).toString();
+      const response = await fetch(`${API_BASE_URL}/admin/documents?${query}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    updateStatus: async (id, status, notes = '') => {
+      const response = await fetch(`${API_BASE_URL}/admin/documents/${id}/status`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, notes }),
         credentials: 'include',
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update document status');
-      }
-      return data;
+      return response.json();
     },
 
     getStats: async () => {
@@ -328,7 +334,7 @@ export const adminApi = {
 
   stats: {
     getSummary: async () => {
-      const [usersRes, warehousesRes, documentsRes] = await Promise.all([
+      const [usersRes, warehousesRes, productsRes, documentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/users`, {
           headers: getAuthHeaders(),
           credentials: 'include',
@@ -337,7 +343,11 @@ export const adminApi = {
           headers: getAuthHeaders(),
           credentials: 'include',
         }),
-        fetch(`${API_BASE_URL}/documents/stats/overview`, {
+        fetch(`${API_BASE_URL}/products`, {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        }),
+        fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
           headers: getAuthHeaders(),
           credentials: 'include',
         }),
@@ -345,18 +355,22 @@ export const adminApi = {
 
       const users = await usersRes.json();
       const warehouses = await warehousesRes.json();
+      const products = await productsRes.json();
       const documents = await documentsRes.json();
 
       return {
-        totalUsers: users.count || 0,
-        totalWarehouses: warehouses.count || 0,
-        usersByRole: users.users
-          ? users.users.reduce((acc, user) => {
+        totalUsers: users.count || users.data?.length || 0,
+        totalWarehouses: warehouses.count || warehouses.data?.length || 0,
+        totalProducts: products.count || products.data?.length || 0,
+        usersByRole: users.data
+          ? users.data.reduce((acc, user) => {
               acc[user.role] = (acc[user.role] || 0) + 1;
               return acc;
             }, {})
           : {},
-        documentsByType: documents.data || {},
+        documentsByType: documents.data?.documentsByType || {},
+        documentsByStatus: documents.data?.documentsByStatus || {},
+        recentDocuments: documents.data?.recentDocuments || [],
       };
     },
   },
