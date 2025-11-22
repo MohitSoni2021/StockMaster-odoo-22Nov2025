@@ -1,2 +1,14 @@
-@import "tailwindcss";
+@import "tailwindcss/preflight";
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
+
+/* Small project-wide utility overrides (kept lightweight) */
+html,body,#root {
+	height: 100%;
+}
+
+/* scroll smoothing for nicer navigation */
+html {
+	scroll-behavior: smooth;
+}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { adminApi } from '@/utils/adminApi';
 
@@ -9,24 +9,61 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalWarehouses: 0,
     usersByRole: {},
+    documentsByType: {},
+  });
+  const [documents, setDocuments] = useState({
+    receipts: [],
+    transfers: [],
+    deliveries: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeDocumentTab, setActiveDocumentTab] = useState('receipts');
 
-  useEffect(() => {
-    fetchStats();
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const [receiptsRes, transfersRes, deliveriesRes] = await Promise.all([
+        adminApi.documents.getByType('RECEIPT'),
+        adminApi.documents.getByType('TRANSFER'),
+        adminApi.documents.getByType('DELIVERY'),
+      ]);
+
+      setDocuments({
+        receipts: receiptsRes.data || [],
+        transfers: transfersRes.data || [],
+        deliveries: deliveriesRes.data || [],
+      });
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    }
   }, []);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const data = await adminApi.stats.getSummary();
       setStats(data);
+      await fetchDocuments();
     } catch (err) {
       setError('Failed to load dashboard stats');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }, [fetchDocuments]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const handleStatusChange = async (documentId, newStatus, type) => {
+    try {
+      await adminApi.documents.updateStatus(documentId, newStatus);
+      // Refresh documents after status update
+      await fetchDocuments();
+    } catch (err) {
+      setError('Failed to update document status');
+      console.error(err);
     }
   };
 
@@ -71,6 +108,27 @@ export default function AdminDashboard() {
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatCard
+          title="Receipts"
+          value={stats.documentsByType?.RECEIPT || 0}
+          icon="📄"
+          color="bg-indigo-500"
+        />
+        <StatCard
+          title="Transfers"
+          value={stats.documentsByType?.TRANSFER || 0}
+          icon="🔄"
+          color="bg-teal-500"
+        />
+        <StatCard
+          title="Deliveries"
+          value={stats.documentsByType?.DELIVERY || 0}
+          icon="🚚"
+          color="bg-cyan-500"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <QuickActionCard
           title="Manage Users"
@@ -86,6 +144,66 @@ export default function AdminDashboard() {
           icon="📦"
           color="bg-green-50 border-green-200"
         />
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 className="text-2xl font-bold mb-6">Document Management</h2>
+
+        <div className="mb-6">
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveDocumentTab('receipts')}
+              className={`px-6 py-3 font-medium ${
+                activeDocumentTab === 'receipts'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Receipts ({documents.receipts.length})
+            </button>
+            <button
+              onClick={() => setActiveDocumentTab('transfers')}
+              className={`px-6 py-3 font-medium ${
+                activeDocumentTab === 'transfers'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Transfers ({documents.transfers.length})
+            </button>
+            <button
+              onClick={() => setActiveDocumentTab('deliveries')}
+              className={`px-6 py-3 font-medium ${
+                activeDocumentTab === 'deliveries'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Deliveries ({documents.deliveries.length})
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          {activeDocumentTab === 'receipts' && (
+            <DocumentTable
+              documents={documents.receipts}
+              onStatusChange={(id, status) => handleStatusChange(id, status, 'receipts')}
+            />
+          )}
+          {activeDocumentTab === 'transfers' && (
+            <DocumentTable
+              documents={documents.transfers}
+              onStatusChange={(id, status) => handleStatusChange(id, status, 'transfers')}
+            />
+          )}
+          {activeDocumentTab === 'deliveries' && (
+            <DocumentTable
+              documents={documents.deliveries}
+              onStatusChange={(id, status) => handleStatusChange(id, status, 'deliveries')}
+            />
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
@@ -123,5 +241,76 @@ function QuickActionCard({ title, description, link, icon, color }) {
         <div className="mt-4 text-blue-600 font-semibold">View →</div>
       </div>
     </Link>
+  );
+}
+
+function DocumentTable({ documents, onStatusChange }) {
+  const documentStatuses = ['DRAFT', 'WAITING', 'READY', 'DONE', 'CANCELED'];
+
+  if (documents.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        No documents found
+      </div>
+    );
+  }
+
+  return (
+    <table className="w-full table-auto">
+      <thead>
+        <tr className="bg-gray-50">
+          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Reference</th>
+          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
+          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Warehouse</th>
+          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Created</th>
+          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {documents.map(doc => (
+          <tr key={doc._id} className="hover:bg-gray-50">
+            <td className="px-4 py-3 text-sm font-mono text-gray-900">{doc.reference}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">{doc.type}</td>
+            <td className="px-4 py-3 text-sm">
+              <select
+                value={doc.status}
+                onChange={(e) => onStatusChange(doc._id, e.target.value)}
+                className={`px-2 py-1 text-xs font-medium rounded-full border-0 ${
+                  doc.status === 'DONE'
+                    ? 'bg-green-100 text-green-800'
+                    : doc.status === 'CANCELED'
+                      ? 'bg-red-100 text-red-800'
+                      : doc.status === 'READY'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {documentStatuses.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">{doc.warehouse?.name || '-'}</td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {new Date(doc.createdAt).toLocaleDateString()}
+            </td>
+            <td className="px-4 py-3 text-sm">
+              <div className="flex space-x-2">
+                {doc.type === 'RECEIPT' && doc.from && (
+                  <span className="text-xs text-gray-500">From: {doc.from.name}</span>
+                )}
+                {doc.type === 'DELIVERY' && doc.to && (
+                  <span className="text-xs text-gray-500">To: {doc.to.name}</span>
+                )}
+                {doc.type === 'TRANSFER' && doc.toWarehouse && (
+                  <span className="text-xs text-gray-500">To: {doc.toWarehouse.name}</span>
+                )}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

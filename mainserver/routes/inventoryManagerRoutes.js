@@ -14,7 +14,16 @@ import {
   getStockBalance,
   getWarehouseStockSummary,
   assignTaskToStaff,
-  getReorderPointItems
+  getReorderPointItems,
+  createReceipt,
+  updateReceipt,
+  deleteReceipt,
+  createDelivery,
+  updateDelivery,
+  deleteDelivery,
+  createTransfer,
+  updateTransfer,
+  deleteTransfer
 } from '../controllers/inventoryManagerController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -25,8 +34,20 @@ router.use(protect);
 router.get('/dashboard/kpis', getDashboardKPIs);
 
 router.get('/receipts', getReceiptDocuments);
+router.post('/receipts', createReceipt);
+router.put('/receipts/:id', updateReceipt);
+router.delete('/receipts/:id', deleteReceipt);
+
 router.get('/deliveries', getDeliveryDocuments);
+router.post('/deliveries', createDelivery);
+router.put('/deliveries/:id', updateDelivery);
+router.delete('/deliveries/:id', deleteDelivery);
+
 router.get('/transfers', getTransferDocuments);
+router.post('/transfers', createTransfer);
+router.put('/transfers/:id', updateTransfer);
+router.delete('/transfers/:id', deleteTransfer);
+
 router.get('/adjustments', getAdjustmentDocuments);
 
 router.get('/pending-approvals', getPendingApprovals);

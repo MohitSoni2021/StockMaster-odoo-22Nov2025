@@ -91,13 +91,25 @@ export const getReceiptDocuments = async (req, res, next) => {
     const startIndex = (page - 1) * limit;
     const status = req.query.status || '';
     const search = req.query.search || '';
-    const warehouseId = req.query.warehouse || '';
 
-    let query = { type: 'RECEIPT' };
+    // Get manager's assigned warehouse
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    let query = {
+      type: 'RECEIPT',
+      warehouse: user.warehouseAssigned._id
+    };
 
     if (status) query.status = status;
     if (search) query.reference = { $regex: search, $options: 'i' };
-    if (warehouseId) query.warehouse = warehouseId;
 
     const receipts = await Document.find(query)
       .populate('warehouse', 'name shortCode')
@@ -137,13 +149,25 @@ export const getDeliveryDocuments = async (req, res, next) => {
     const startIndex = (page - 1) * limit;
     const status = req.query.status || '';
     const search = req.query.search || '';
-    const warehouseId = req.query.warehouse || '';
 
-    let query = { type: 'DELIVERY' };
+    // Get manager's assigned warehouse
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    let query = {
+      type: 'DELIVERY',
+      warehouse: user.warehouseAssigned._id
+    };
 
     if (status) query.status = status;
     if (search) query.reference = { $regex: search, $options: 'i' };
-    if (warehouseId) query.warehouse = warehouseId;
 
     const deliveries = await Document.find(query)
       .populate('warehouse', 'name shortCode')
@@ -183,13 +207,25 @@ export const getTransferDocuments = async (req, res, next) => {
     const startIndex = (page - 1) * limit;
     const status = req.query.status || '';
     const search = req.query.search || '';
-    const warehouseId = req.query.warehouse || '';
 
-    let query = { type: 'TRANSFER' };
+    // Get manager's assigned warehouse
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    let query = {
+      type: 'TRANSFER',
+      warehouse: user.warehouseAssigned._id
+    };
 
     if (status) query.status = status;
     if (search) query.reference = { $regex: search, $options: 'i' };
-    if (warehouseId) query.warehouse = warehouseId;
 
     const transfers = await Document.find(query)
       .populate('warehouse', 'name shortCode')
@@ -230,13 +266,25 @@ export const getAdjustmentDocuments = async (req, res, next) => {
     const startIndex = (page - 1) * limit;
     const status = req.query.status || '';
     const search = req.query.search || '';
-    const warehouseId = req.query.warehouse || '';
 
-    let query = { type: 'ADJUSTMENT' };
+    // Get manager's assigned warehouse
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    let query = {
+      type: 'ADJUSTMENT',
+      warehouse: user.warehouseAssigned._id
+    };
 
     if (status) query.status = status;
     if (search) query.reference = { $regex: search, $options: 'i' };
-    if (warehouseId) query.warehouse = warehouseId;
 
     const adjustments = await Document.find(query)
       .populate('warehouse', 'name shortCode')
@@ -719,6 +767,692 @@ export const getReorderPointItems = async (req, res, next) => {
         totalItemsNeedingReplenishment: needsReplenishment.length,
         totalOutOfStock: outOfStock.length
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Manager-specific receipt CRUD operations
+export const createReceipt = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const { from, contact, contactRef, scheduleDate, notes, meta, lines } = req.body;
+
+    if (!from) {
+      return res.status(400).json({
+        success: false,
+        message: 'From contact is required for receipts'
+      });
+    }
+
+    if (!lines || !Array.isArray(lines) || lines.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one document line is required'
+      });
+    }
+
+    const reference = `RECEIPT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    const document = await Document.create({
+      reference,
+      type: 'RECEIPT',
+      warehouse: user.warehouseAssigned._id,
+      from,
+      contact,
+      contactRef,
+      scheduleDate,
+      notes,
+      status: 'DRAFT',
+      meta: meta || {},
+      createdBy: userId,
+      owner: userId
+    });
+
+    // Create document lines
+    const documentLines = lines.map(line => ({
+      document: document._id,
+      product: line.product,
+      uom: line.uom,
+      quantity: line.quantity,
+      unitCost: line.unitCost || 0,
+      status: 'PENDING',
+      meta: line.meta || {}
+    }));
+
+    await DocumentLine.insertMany(documentLines);
+
+    const populatedDocument = await Document.findById(document._id)
+      .populate('warehouse', 'name shortCode')
+      .populate('from', 'name email')
+      .populate('contact')
+      .populate('createdBy', 'name email');
+
+    const populatedLines = await DocumentLine.find({ document: document._id })
+      .populate('product', 'sku name category defaultUom');
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...populatedDocument.toObject(),
+        lines: populatedLines
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateReceipt = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
+      });
+    }
+
+    if (document.type !== 'RECEIPT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Document is not a receipt'
+      });
+    }
+
+    if (document.warehouse.toString() !== user.warehouseAssigned._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage receipts from your assigned warehouse'
+      });
+    }
+
+    if (document.status !== 'DRAFT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Can only update receipts in DRAFT status'
+      });
+    }
+
+    const { from, contact, contactRef, scheduleDate, notes, meta, lines } = req.body;
+
+    const updatedDocument = await Document.findByIdAndUpdate(
+      req.params.id,
+      {
+        from,
+        contact,
+        contactRef,
+        scheduleDate,
+        notes,
+        meta: meta || {}
+      },
+      { new: true, runValidators: true }
+    ).populate('warehouse', 'name shortCode')
+     .populate('from', 'name email')
+     .populate('contact')
+     .populate('createdBy', 'name email');
+
+    // Update document lines if provided
+    if (lines && Array.isArray(lines)) {
+      // Remove existing lines
+      await DocumentLine.deleteMany({ document: req.params.id });
+
+      // Create new lines
+      const documentLines = lines.map(line => ({
+        document: req.params.id,
+        product: line.product,
+        uom: line.uom,
+        quantity: line.quantity,
+        unitCost: line.unitCost || 0,
+        status: 'PENDING',
+        meta: line.meta || {}
+      }));
+
+      await DocumentLine.insertMany(documentLines);
+    }
+
+    const populatedLines = await DocumentLine.find({ document: req.params.id })
+      .populate('product', 'sku name category defaultUom');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...updatedDocument.toObject(),
+        lines: populatedLines
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteReceipt = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
+      });
+    }
+
+    if (document.type !== 'RECEIPT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Document is not a receipt'
+      });
+    }
+
+    if (document.warehouse.toString() !== user.warehouseAssigned._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage receipts from your assigned warehouse'
+      });
+    }
+
+    if (document.status !== 'DRAFT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Can only delete receipts in DRAFT status'
+      });
+    }
+
+    await DocumentLine.deleteMany({ document: req.params.id });
+    await Document.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Receipt deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Manager-specific delivery CRUD operations
+export const createDelivery = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const { to, contact, contactRef, scheduleDate, notes, meta, lines } = req.body;
+
+    if (!to) {
+      return res.status(400).json({
+        success: false,
+        message: 'To contact is required for deliveries'
+      });
+    }
+
+    if (!lines || !Array.isArray(lines) || lines.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one document line is required'
+      });
+    }
+
+    const reference = `DELIVERY-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    const document = await Document.create({
+      reference,
+      type: 'DELIVERY',
+      warehouse: user.warehouseAssigned._id,
+      to,
+      contact,
+      contactRef,
+      scheduleDate,
+      notes,
+      status: 'DRAFT',
+      meta: meta || {},
+      createdBy: userId,
+      owner: userId
+    });
+
+    // Create document lines
+    const documentLines = lines.map(line => ({
+      document: document._id,
+      product: line.product,
+      uom: line.uom,
+      quantity: line.quantity,
+      unitCost: line.unitCost || 0,
+      status: 'PENDING',
+      meta: line.meta || {}
+    }));
+
+    await DocumentLine.insertMany(documentLines);
+
+    const populatedDocument = await Document.findById(document._id)
+      .populate('warehouse', 'name shortCode')
+      .populate('to', 'name email')
+      .populate('contact')
+      .populate('createdBy', 'name email');
+
+    const populatedLines = await DocumentLine.find({ document: document._id })
+      .populate('product', 'sku name category defaultUom');
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...populatedDocument.toObject(),
+        lines: populatedLines
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateDelivery = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Delivery not found'
+      });
+    }
+
+    if (document.type !== 'DELIVERY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Document is not a delivery'
+      });
+    }
+
+    if (document.warehouse.toString() !== user.warehouseAssigned._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage deliveries from your assigned warehouse'
+      });
+    }
+
+    if (document.status !== 'DRAFT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Can only update deliveries in DRAFT status'
+      });
+    }
+
+    const { to, contact, contactRef, scheduleDate, notes, meta, lines } = req.body;
+
+    const updatedDocument = await Document.findByIdAndUpdate(
+      req.params.id,
+      {
+        to,
+        contact,
+        contactRef,
+        scheduleDate,
+        notes,
+        meta: meta || {}
+      },
+      { new: true, runValidators: true }
+    ).populate('warehouse', 'name shortCode')
+     .populate('to', 'name email')
+     .populate('contact')
+     .populate('createdBy', 'name email');
+
+    // Update document lines if provided
+    if (lines && Array.isArray(lines)) {
+      // Remove existing lines
+      await DocumentLine.deleteMany({ document: req.params.id });
+
+      // Create new lines
+      const documentLines = lines.map(line => ({
+        document: req.params.id,
+        product: line.product,
+        uom: line.uom,
+        quantity: line.quantity,
+        unitCost: line.unitCost || 0,
+        status: 'PENDING',
+        meta: line.meta || {}
+      }));
+
+      await DocumentLine.insertMany(documentLines);
+    }
+
+    const populatedLines = await DocumentLine.find({ document: req.params.id })
+      .populate('product', 'sku name category defaultUom');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...updatedDocument.toObject(),
+        lines: populatedLines
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteDelivery = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Delivery not found'
+      });
+    }
+
+    if (document.type !== 'DELIVERY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Document is not a delivery'
+      });
+    }
+
+    if (document.warehouse.toString() !== user.warehouseAssigned._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage deliveries from your assigned warehouse'
+      });
+    }
+
+    if (document.status !== 'DRAFT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Can only delete deliveries in DRAFT status'
+      });
+    }
+
+    await DocumentLine.deleteMany({ document: req.params.id });
+    await Document.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Delivery deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Manager-specific transfer CRUD operations
+export const createTransfer = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const { toWarehouse, fromLocation, toLocation, scheduleDate, notes, meta, lines } = req.body;
+
+    if (!toWarehouse) {
+      return res.status(400).json({
+        success: false,
+        message: 'Destination warehouse is required for transfers'
+      });
+    }
+
+    if (!lines || !Array.isArray(lines) || lines.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one document line is required'
+      });
+    }
+
+    const reference = `TRANSFER-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    const document = await Document.create({
+      reference,
+      type: 'TRANSFER',
+      warehouse: user.warehouseAssigned._id,
+      toWarehouse,
+      fromLocation,
+      toLocation,
+      scheduleDate,
+      notes,
+      status: 'DRAFT',
+      meta: meta || {},
+      createdBy: userId,
+      owner: userId
+    });
+
+    // Create document lines
+    const documentLines = lines.map(line => ({
+      document: document._id,
+      product: line.product,
+      uom: line.uom,
+      quantity: line.quantity,
+      unitCost: line.unitCost || 0,
+      status: 'PENDING',
+      meta: line.meta || {}
+    }));
+
+    await DocumentLine.insertMany(documentLines);
+
+    const populatedDocument = await Document.findById(document._id)
+      .populate('warehouse', 'name shortCode')
+      .populate('toWarehouse', 'name shortCode')
+      .populate('fromLocation', 'name code')
+      .populate('toLocation', 'name code')
+      .populate('createdBy', 'name email');
+
+    const populatedLines = await DocumentLine.find({ document: document._id })
+      .populate('product', 'sku name category defaultUom');
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...populatedDocument.toObject(),
+        lines: populatedLines
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateTransfer = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transfer not found'
+      });
+    }
+
+    if (document.type !== 'TRANSFER') {
+      return res.status(400).json({
+        success: false,
+        message: 'Document is not a transfer'
+      });
+    }
+
+    if (document.warehouse.toString() !== user.warehouseAssigned._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage transfers from your assigned warehouse'
+      });
+    }
+
+    if (document.status !== 'DRAFT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Can only update transfers in DRAFT status'
+      });
+    }
+
+    const { toWarehouse, fromLocation, toLocation, scheduleDate, notes, meta, lines } = req.body;
+
+    const updatedDocument = await Document.findByIdAndUpdate(
+      req.params.id,
+      {
+        toWarehouse,
+        fromLocation,
+        toLocation,
+        scheduleDate,
+        notes,
+        meta: meta || {}
+      },
+      { new: true, runValidators: true }
+    ).populate('warehouse', 'name shortCode')
+     .populate('toWarehouse', 'name shortCode')
+     .populate('fromLocation', 'name code')
+     .populate('toLocation', 'name code')
+     .populate('createdBy', 'name email');
+
+    // Update document lines if provided
+    if (lines && Array.isArray(lines)) {
+      // Remove existing lines
+      await DocumentLine.deleteMany({ document: req.params.id });
+
+      // Create new lines
+      const documentLines = lines.map(line => ({
+        document: req.params.id,
+        product: line.product,
+        uom: line.uom,
+        quantity: line.quantity,
+        unitCost: line.unitCost || 0,
+        status: 'PENDING',
+        meta: line.meta || {}
+      }));
+
+      await DocumentLine.insertMany(documentLines);
+    }
+
+    const populatedLines = await DocumentLine.find({ document: req.params.id })
+      .populate('product', 'sku name category defaultUom');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...updatedDocument.toObject(),
+        lines: populatedLines
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteTransfer = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const user = await User.findById(userId).populate('warehouseAssigned');
+
+    if (!user || !user.warehouseAssigned) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager must be assigned to a warehouse'
+      });
+    }
+
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transfer not found'
+      });
+    }
+
+    if (document.type !== 'TRANSFER') {
+      return res.status(400).json({
+        success: false,
+        message: 'Document is not a transfer'
+      });
+    }
+
+    if (document.warehouse.toString() !== user.warehouseAssigned._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only manage transfers from your assigned warehouse'
+      });
+    }
+
+    if (document.status !== 'DRAFT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Can only delete transfers in DRAFT status'
+      });
+    }
+
+    await DocumentLine.deleteMany({ document: req.params.id });
+    await Document.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Transfer deleted successfully'
     });
   } catch (error) {
     next(error);

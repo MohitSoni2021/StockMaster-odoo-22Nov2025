@@ -18,7 +18,14 @@ const apiRequest = async (endpoint, options = {}) => {
   const response = await fetch(url, config);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+    // Try to parse server error body to surface helpful message in client logs
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      errorData = { message: `HTTP error! status: ${response.status}` };
+    }
+    console.error('API error response from', url, errorData);
     throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
   }
 
@@ -110,6 +117,69 @@ export const managerAPI = {
   getReorderItems: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return apiRequest(`/reorder/items?${query}`);
+  },
+
+  // CRUD operations for receipts
+  createReceipt: (data) => {
+    return apiRequest('/receipts', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateReceipt: (id, data) => {
+    return apiRequest(`/receipts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteReceipt: (id) => {
+    return apiRequest(`/receipts/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // CRUD operations for deliveries
+  createDelivery: (data) => {
+    return apiRequest('/deliveries', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateDelivery: (id, data) => {
+    return apiRequest(`/deliveries/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteDelivery: (id) => {
+    return apiRequest(`/deliveries/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // CRUD operations for transfers
+  createTransfer: (data) => {
+    return apiRequest('/transfers', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateTransfer: (id, data) => {
+    return apiRequest(`/transfers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteTransfer: (id) => {
+    return apiRequest(`/transfers/${id}`, {
+      method: 'DELETE'
+    });
   }
 };
 

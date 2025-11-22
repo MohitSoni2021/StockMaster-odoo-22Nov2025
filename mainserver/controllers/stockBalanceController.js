@@ -284,10 +284,19 @@ export const getStockBalanceByWarehouse = async (req, res, next) => {
       .limit(limit)
       .skip(startIndex);
 
+    // If no stock balances found, return empty array (not an error)
     if (stockBalances.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No stock balance found for this warehouse'
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalRecords: 0,
+          hasNext: false,
+          hasPrev: false
+        },
+        data: []
       });
     }
 

@@ -125,9 +125,210 @@ export const adminApi = {
     },
   },
 
+  products: {
+    getAll: async (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await fetch(`${API_BASE_URL}/products?${queryString}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getById: async (id) => {
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    create: async (productData) => {
+      const response = await fetch(`${API_BASE_URL}/products`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(productData),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    update: async (id, productData) => {
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(productData),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    delete: async (id) => {
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getStats: async () => {
+      const response = await fetch(`${API_BASE_URL}/products/stats/overview`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+  },
+
+  locations: {
+    getAll: async (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await fetch(`${API_BASE_URL}/locations?${queryString}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getById: async (id) => {
+      const response = await fetch(`${API_BASE_URL}/locations/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    create: async (locationData) => {
+      const response = await fetch(`${API_BASE_URL}/locations`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(locationData),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    update: async (id, locationData) => {
+      const response = await fetch(`${API_BASE_URL}/locations/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(locationData),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    delete: async (id) => {
+      const response = await fetch(`${API_BASE_URL}/locations/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getByWarehouse: async (warehouseId) => {
+      const response = await fetch(`${API_BASE_URL}/locations/warehouse/${warehouseId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getStats: async () => {
+      const response = await fetch(`${API_BASE_URL}/locations/stats/overview`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+  },
+
+  stockBalances: {
+    getAll: async (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await fetch(`${API_BASE_URL}/stock-balances?${queryString}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getByWarehouse: async (warehouseId) => {
+      const response = await fetch(`${API_BASE_URL}/stock-balances/warehouse/${warehouseId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getLowStock: async () => {
+      const response = await fetch(`${API_BASE_URL}/stock-balances/low-stock`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+  },
+
+  documents: {
+    getAll: async (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await fetch(`${API_BASE_URL}/documents?${queryString}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    getByType: async (type) => {
+      const response = await fetch(`${API_BASE_URL}/documents?type=${type}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+
+    updateStatus: async (id, status) => {
+      const response = await fetch(`${API_BASE_URL}/documents/${id}/status`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status }),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update document status');
+      }
+      return data;
+    },
+
+    getStats: async () => {
+      const response = await fetch(`${API_BASE_URL}/documents/stats/overview`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return response.json();
+    },
+  },
+
   stats: {
     getSummary: async () => {
-      const [usersRes, warehousesRes] = await Promise.all([
+      const [usersRes, warehousesRes, documentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/users`, {
           headers: getAuthHeaders(),
           credentials: 'include',
@@ -136,10 +337,15 @@ export const adminApi = {
           headers: getAuthHeaders(),
           credentials: 'include',
         }),
+        fetch(`${API_BASE_URL}/documents/stats/overview`, {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        }),
       ]);
 
       const users = await usersRes.json();
       const warehouses = await warehousesRes.json();
+      const documents = await documentsRes.json();
 
       return {
         totalUsers: users.count || 0,
@@ -150,6 +356,7 @@ export const adminApi = {
               return acc;
             }, {})
           : {},
+        documentsByType: documents.data || {},
       };
     },
   },
