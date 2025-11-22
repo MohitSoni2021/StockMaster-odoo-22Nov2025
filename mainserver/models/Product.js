@@ -60,7 +60,6 @@ const productSchema = new mongoose.Schema({
   timestamps: true
 });
 
-productSchema.index({ sku: 1 });
 productSchema.index({ name: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ isActive: 1 });
