@@ -1,0 +1,287 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import StaffNavbar from '../../../components/StaffNavbar'
+import { staffAPI } from '../../../utils/api'
+
+const StaffDeliveries = () => {
+  const [tasks, setTasks] = useState([])
+  const [selectedTask, setSelectedTask] = useState(null)
+  const [taskDetails, setTaskDetails] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [lineUpdates, setLineUpdates] = useState({})
+  const [barcodeInput, setBarcodeInput] = useState('')
+  const [scanMode, setScanMode] = useState(false)
+
+  useEffect(() => {
+    fetchDeliveries()
+  }, [])
+
+  const fetchDeliveries = async () => {
+    try {
+      setLoading(true)
+      const result = await staffAPI.getAssignedTasks({ type: 'DELIVERY', status: 'WAITING' })
+      setTasks(result.data || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchTaskDetails = async (taskId) => {
+    try {
+      const result = await staffAPI.getTaskDetail(taskId)
+      setTaskDetails(result.data)
+      setSelectedTask(taskId)
+      setLineUpdates({})
+      setScanMode(true)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleBarcodeInput = (lineId, sku) => {
+    if (taskDetails?.lines) {
+      const matchingLine = taskDetails.lines.find(l => l.product?.sku === sku)
+      if (matchingLine && matchingLine._id === lineId) {
+        handleQuantityChange(lineId, (lineUpdates[lineId]?.pickedQuantity || 0) + 1)
+      }
+    }
+  }
+
+  const handleQuantityChange = (lineId, quantity) => {
+    setLineUpdates(prev => ({
+      ...prev,
+      [lineId]: {
+        ...prev[lineId],
+        lineId,
+        pickedQuantity: parseFloat(quantity) || 0
+      }
+    }))
+  }
+
+  const handleBarcodeSubmit = (e) => {
+    e.preventDefault()
+    if (barcodeInput && taskDetails?.lines) {
+      const matchedLine = taskDetails.lines.find(l => l.product?.sku === barcodeInput)
+      if (matchedLine) {
+        handleBarcodeInput(matchedLine._id, barcodeInput)
+      } else {
+        alert('Product not found in this delivery')
+      }
+      setBarcodeInput('')
+    }
+  }
+
+  const handleSubmitDelivery = async () => {
+    try {
+      if (Object.keys(lineUpdates).length === 0) {
+        alert('Please pick at least one item')
+        return
+      }
+
+      setSubmitting(true)
+      const updates = Object.values(lineUpdates).filter(u => u.pickedQuantity > 0)
+      
+      await staffAPI.performDelivery(selectedTask, updates)
+      alert('Delivery processed successfully!')
+      setSelectedTask(null)
+      setTaskDetails(null)
+      setScanMode(false)
+      fetchDeliveries()
+    } catch (err) {
+      alert(`Error: ${err.message}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{ backgroundColor: '#FFFFFF', color: '#000000' }}>
+      <StaffNavbar currentPage="deliveries" />
+      
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">📦 Process Deliveries</h1>
+          <p className="text-gray-600">Pick items and prepare orders for shipment</p>
+        </div>
+
+        {!selectedTask ? (
+          <div className="bg-white border-2 border-black rounded-lg p-6">
+            <h2 className="text-2xl font-bold mb-6">Available Deliveries</h2>
+            
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-black"></div>
+                <p className="mt-4 text-gray-600">Loading deliveries...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700">
+                <p>Error: {error}</p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-12 text-gray-600">
+                <p className="text-xl">No pending deliveries</p>
+                <p className="mt-2">Check back later for new delivery tasks</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {tasks.map((task) => (
+                  <div key={task._id} className="border-2 border-gray-300 rounded-lg p-4 hover:border-black transition-colors">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg font-semibold">{task.reference}</h3>
+                        <p className="text-gray-600">To: {task.to?.name}</p>
+                        <p className="text-sm text-gray-500">Warehouse: {task.warehouse?.name}</p>
+                      </div>
+                      <button
+                        onClick={() => fetchTaskDetails(task._id)}
+                        className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 font-semibold"
+                      >
+                        Open →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : taskDetails ? (
+          <div className="bg-white border-2 border-black rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">{taskDetails.document.reference}</h2>
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="text-2xl font-bold hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm text-gray-600">To</p>
+                <p className="font-semibold">{taskDetails.document.to?.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Warehouse</p>
+                <p className="font-semibold">{taskDetails.document.warehouse?.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Created</p>
+                <p className="font-semibold">{new Date(taskDetails.document.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Status</p>
+                <p className="font-semibold">{taskDetails.document.status}</p>
+              </div>
+            </div>
+
+            {scanMode && (
+              <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-500 rounded-lg">
+                <form onSubmit={handleBarcodeSubmit} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    placeholder="Scan or type SKU to pick..."
+                    autoFocus
+                    className="flex-1 border-2 border-blue-500 p-3 rounded-lg font-mono"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+                  >
+                    Pick →
+                  </button>
+                </form>
+                <p className="text-sm text-blue-600 mt-2">💡 Scan products to add to picked items</p>
+              </div>
+            )}
+
+            <h3 className="text-xl font-bold mb-4">Picking List</h3>
+            <div className="space-y-4">
+              {taskDetails.lines.map((line) => (
+                <div key={line._id} className={`border-2 rounded-lg p-4 transition-colors ${
+                  (lineUpdates[line._id]?.pickedQuantity || 0) >= line.quantity
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-300'
+                }`}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Product</p>
+                      <p className="font-semibold text-lg">{line.product?.sku}</p>
+                      <p className="text-gray-600 text-sm">{line.product?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Required Qty</p>
+                      <p className="font-semibold text-lg">{line.quantity} {line.uom}</p>
+                      {(lineUpdates[line._id]?.pickedQuantity || 0) > 0 && (
+                        <p className="text-green-600 font-semibold">
+                          Picked: {lineUpdates[line._id].pickedQuantity}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={lineUpdates[line._id]?.pickedQuantity || ''}
+                      onChange={(e) => handleQuantityChange(line._id, e.target.value)}
+                      placeholder="Enter picked quantity"
+                      className="flex-1 border-2 border-black p-3 rounded-lg"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleQuantityChange(line._id, (lineUpdates[line._id]?.pickedQuantity || 0) + 1)}
+                        className="bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-bold"
+                      >
+                        +1
+                      </button>
+                      <button
+                        onClick={() => handleQuantityChange(line._id, Math.max(0, (lineUpdates[line._id]?.pickedQuantity || 0) - 1))}
+                        className="bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 font-bold"
+                      >
+                        -1
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={handleSubmitDelivery}
+                disabled={submitting}
+                className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-bold transition-colors"
+              >
+                {submitting ? 'Processing...' : '✓ Mark as READY'}
+              </button>
+              <button
+                onClick={() => setScanMode(!scanMode)}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-bold"
+              >
+                {scanMode ? 'Manual Mode' : 'Scan Mode'}
+              </button>
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="bg-gray-400 text-white px-8 py-3 rounded-lg hover:bg-gray-500 font-bold"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+export default StaffDeliveries

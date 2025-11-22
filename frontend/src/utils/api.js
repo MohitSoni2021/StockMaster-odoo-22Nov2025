@@ -309,3 +309,111 @@ export const productAPI = {
     });
   }
 };
+
+// Location API functions
+export const locationAPI = {
+  // Get all locations
+  getLocations: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/locations?${queryString}`);
+  },
+
+  // Get single location
+  getLocation: (id) => {
+    return apiRequest(`/locations/${id}`);
+  },
+
+  // Create new location
+  createLocation: (locationData) => {
+    return apiRequest('/locations', {
+      method: 'POST',
+      body: JSON.stringify(locationData)
+    });
+  },
+
+  // Update location
+  updateLocation: (id, locationData) => {
+    return apiRequest(`/locations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(locationData)
+    });
+  },
+
+  // Delete location
+  deleteLocation: (id) => {
+    return apiRequest(`/locations/${id}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// Staff API functions
+export const staffAPI = {
+  // Get staff dashboard
+  getDashboard: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/staff/dashboard?${queryString}`);
+  },
+
+  // Get assigned tasks
+  getAssignedTasks: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/staff/tasks?${queryString}`);
+  },
+
+  // Get task detail
+  getTaskDetail: (id) => {
+    return apiRequest(`/staff/tasks/${id}`);
+  },
+
+  // Update task status
+  updateTaskStatus: (id, status) => {
+    return apiRequest(`/staff/tasks/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status })
+    });
+  },
+
+  // Perform receipt
+  performReceipt: (documentId, lineUpdates) => {
+    return apiRequest(`/staff/receipts/${documentId}/perform`, {
+      method: 'POST',
+      body: JSON.stringify({ lineUpdates })
+    });
+  },
+
+  // Perform delivery
+  performDelivery: (documentId, lineUpdates) => {
+    return apiRequest(`/staff/deliveries/${documentId}/perform`, {
+      method: 'POST',
+      body: JSON.stringify({ lineUpdates })
+    });
+  },
+
+  // Perform transfer
+  performTransfer: (documentId, lineUpdates) => {
+    return apiRequest(`/staff/transfers/${documentId}/perform`, {
+      method: 'POST',
+      body: JSON.stringify({ lineUpdates })
+    });
+  },
+
+  // Perform stock count
+  performStockCount: (documentId, lineUpdates) => {
+    return apiRequest(`/staff/stock-counts/${documentId}/perform`, {
+      method: 'POST',
+      body: JSON.stringify({ lineUpdates })
+    });
+  },
+
+  // Search products
+  searchProduct: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/staff/product/search?${queryString}`);
+  },
+
+  // Get location stock
+  getLocationStock: (locationId) => {
+    return apiRequest(`/staff/locations/${locationId}/stock`);
+  }
+};

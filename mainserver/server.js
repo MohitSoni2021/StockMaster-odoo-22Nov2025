@@ -12,6 +12,7 @@ import documentRoutes from './routes/documentRoutes.js';
 import documentLineRoutes from './routes/documentLineRoutes.js';
 import stockLedgerRoutes from './routes/stockLedgerRoutes.js';
 import inventoryManagerRoutes from './routes/inventoryManagerRoutes.js';
+import staffRoutes from './routes/staffRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -69,6 +70,7 @@ app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/document-lines', documentLineRoutes);
 app.use('/api/v1/stock-ledgers', stockLedgerRoutes);
 app.use('/api/v1/manager', inventoryManagerRoutes);
+app.use('/api/v1/staff', staffRoutes);
 
 // 404 handler
 app.use((req, res) => {
