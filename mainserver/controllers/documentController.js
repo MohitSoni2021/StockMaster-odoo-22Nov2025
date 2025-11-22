@@ -102,6 +102,7 @@ export const getDocument = async (req, res, next) => {
 export const createDocument = async (req, res, next) => {
   try {
     const { type, warehouse, from, to, toWarehouse, fromLocation, toLocation, contact, contactRef, scheduleDate, notes, meta, createdBy } = req.body;
+    const userId = req.user?._id || req.user?.id;
 
     if (!type || !warehouse) {
       return res.status(400).json({
@@ -148,7 +149,8 @@ export const createDocument = async (req, res, next) => {
       notes,
       status: 'DRAFT',
       meta: meta || {},
-      createdBy
+      createdBy,
+      owner: userId
     });
 
     res.status(201).json({
@@ -200,11 +202,26 @@ export const updateDocument = async (req, res, next) => {
 export const deleteDocument = async (req, res, next) => {
   try {
     const document = await Document.findById(req.params.id);
+    const userId = req.user?._id || req.user?.id;
 
     if (!document) {
       return res.status(404).json({
         success: false,
         message: 'Document not found'
+      });
+    }
+
+    if (document.status === 'READY' || document.status === 'DONE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete an approved document'
+      });
+    }
+
+    if (document.owner?.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to delete this document'
       });
     }
 

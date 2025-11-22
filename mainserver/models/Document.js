@@ -93,6 +93,11 @@ const documentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   validatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

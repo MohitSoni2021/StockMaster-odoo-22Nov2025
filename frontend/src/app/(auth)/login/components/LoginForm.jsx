@@ -48,7 +48,20 @@ export default function LoginForm() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      router.push('/dashboard');
+      document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+      document.cookie = `userRole=${data.user.role}; path=/; max-age=${60 * 60 * 24 * 7}`;
+
+      const userRole = data.user.role;
+      
+      if (userRole === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (userRole === 'manager') {
+        router.push('/manager/dashboard');
+      } else if (userRole === 'staff') {
+        router.push('/staff/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
       console.error('Login error:', err);

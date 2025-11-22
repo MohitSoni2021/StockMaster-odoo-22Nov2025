@@ -2,11 +2,20 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function ManagerNavbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isDocumentsOpen, setIsDocumentsOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    document.cookie = 'token=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    router.push('/(auth)/login');
+  };
 
   const isActive = (path) => pathname.startsWith(path);
 
@@ -113,12 +122,12 @@ export default function ManagerNavbar() {
             🔔 Reorder
           </Link>
 
-          <Link
-            href="/"
-            className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600"
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-700 rounded hover:bg-red-600"
           >
-            Back to Main
-          </Link>
+            🚪 Logout
+          </button>
         </div>
       </div>
     </nav>

@@ -2,11 +2,20 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function AdminNavbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    document.cookie = 'token=; path=/; max-age=0';
+    document.cookie = 'userRole=; path=/; max-age=0';
+    router.push('/(auth)/login');
+  };
 
   const isActive = (path) => pathname.startsWith(path);
 
@@ -45,12 +54,12 @@ export default function AdminNavbar() {
             📦 Warehouses
           </Link>
 
-          <Link
-            href="/"
+          <button
+            onClick={handleLogout}
             className="px-4 py-2 bg-red-700 rounded hover:bg-red-600"
           >
-            Logout
-          </Link>
+            🚪 Logout
+          </button>
         </div>
 
         <button
