@@ -81,6 +81,12 @@ const warehouseSchema = new mongoose.Schema({
       ]
     }
   },
+  addresses: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Location'
+    }
+  ],
   isActive: {
     type: Boolean,
     default: true

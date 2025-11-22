@@ -97,6 +97,13 @@ export const createLocation = async (req, res, next) => {
   try {
     const location = await Location.create(req.body);
 
+    // Add location ID to warehouse's addresses array
+    await Warehouse.findByIdAndUpdate(
+      location.warehouse,
+      { $push: { addresses: location._id } },
+      { new: true }
+    );
+
     // Populate warehouse info in response
     await location.populate('warehouse', 'name shortCode address.city address.state');
 
@@ -121,6 +128,32 @@ export const createLocation = async (req, res, next) => {
 // @access  Private
 export const updateLocation = async (req, res, next) => {
   try {
+    const oldLocation = await Location.findById(req.params.id);
+
+    if (!oldLocation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Location not found'
+      });
+    }
+
+    // Check if warehouse is being changed
+    if (req.body.warehouse && oldLocation.warehouse.toString() !== req.body.warehouse) {
+      // Remove location from old warehouse
+      await Warehouse.findByIdAndUpdate(
+        oldLocation.warehouse,
+        { $pull: { addresses: oldLocation._id } },
+        { new: true }
+      );
+
+      // Add location to new warehouse
+      await Warehouse.findByIdAndUpdate(
+        req.body.warehouse,
+        { $push: { addresses: oldLocation._id } },
+        { new: true }
+      );
+    }
+
     const location = await Location.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -129,13 +162,6 @@ export const updateLocation = async (req, res, next) => {
         runValidators: true
       }
     ).populate('warehouse', 'name shortCode address.city address.state');
-
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: 'Location not found'
-      });
-    }
 
     res.status(200).json({
       success: true,
@@ -166,6 +192,13 @@ export const deleteLocation = async (req, res, next) => {
         message: 'Location not found'
       });
     }
+
+    // Remove location ID from warehouse's addresses array
+    await Warehouse.findByIdAndUpdate(
+      location.warehouse,
+      { $pull: { addresses: location._id } },
+      { new: true }
+    );
 
     await Location.findByIdAndDelete(req.params.id);
 
