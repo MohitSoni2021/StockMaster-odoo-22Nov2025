@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import warehouseRoutes from './routes/warehouseRoutes.js';
 import locationRoutes from './routes/locationRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -61,6 +62,7 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/warehouses', warehouseRoutes);
 app.use('/api/v1/locations', locationRoutes);
 app.use('/api/v1/products', productRoutes);

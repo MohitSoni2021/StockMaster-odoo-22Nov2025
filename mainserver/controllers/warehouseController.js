@@ -12,6 +12,11 @@ export const getWarehouses = async (req, res, next) => {
     // Build query
     let query = {};
 
+    // If user is admin, show only warehouses created by this admin
+    if (req.user.role === 'admin') {
+      query.owner = req.user._id;
+    }
+
     // Filter by active status if specified
     if (req.query.active !== undefined) {
       query.isActive = req.query.active === 'true';
@@ -76,6 +81,14 @@ export const getWarehouse = async (req, res, next) => {
       });
     }
 
+    // Check authorization for admin users
+    if (req.user.role === 'admin' && warehouse.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this warehouse'
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: warehouse
@@ -104,6 +117,14 @@ export const getWarehouseDetails = async (req, res, next) => {
       });
     }
 
+    // Check authorization for admin users
+    if (req.user.role === 'admin' && warehouse.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this warehouse'
+      });
+    }
+
     const locations = warehouse.addresses || [];
 
     res.status(200).json({
@@ -125,7 +146,12 @@ export const getWarehouseDetails = async (req, res, next) => {
 // @access  Private
 export const createWarehouse = async (req, res, next) => {
   try {
-    const warehouse = await Warehouse.create(req.body);
+    const warehouseData = {
+      ...req.body,
+      owner: req.user._id
+    };
+    
+    const warehouse = await Warehouse.create(warehouseData);
 
     res.status(201).json({
       success: true,
@@ -148,14 +174,7 @@ export const createWarehouse = async (req, res, next) => {
 // @access  Private
 export const updateWarehouse = async (req, res, next) => {
   try {
-    const warehouse = await Warehouse.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true
-      }
-    );
+    const warehouse = await Warehouse.findById(req.params.id);
 
     if (!warehouse) {
       return res.status(404).json({
@@ -164,9 +183,26 @@ export const updateWarehouse = async (req, res, next) => {
       });
     }
 
+    // Check authorization for admin users
+    if (req.user.role === 'admin' && warehouse.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this warehouse'
+      });
+    }
+
+    const updatedWarehouse = await Warehouse.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
     res.status(200).json({
       success: true,
-      data: warehouse
+      data: updatedWarehouse
     });
   } catch (error) {
     // Handle duplicate key error for shortCode
@@ -191,6 +227,14 @@ export const deleteWarehouse = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Warehouse not found'
+      });
+    }
+
+    // Check authorization for admin users
+    if (req.user.role === 'admin' && warehouse.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this warehouse'
       });
     }
 
@@ -224,13 +268,19 @@ export const deleteWarehouse = async (req, res, next) => {
 // @access  Private
 export const getWarehouseStats = async (req, res, next) => {
   try {
-    const totalWarehouses = await Warehouse.countDocuments();
-    const activeWarehouses = await Warehouse.countDocuments({ isActive: true });
+    // Build match query
+    let matchQuery = {};
+    if (req.user.role === 'admin') {
+      matchQuery.owner = req.user._id;
+    }
+
+    const totalWarehouses = await Warehouse.countDocuments(matchQuery);
+    const activeWarehouses = await Warehouse.countDocuments({ ...matchQuery, isActive: true });
     const inactiveWarehouses = totalWarehouses - activeWarehouses;
 
     // Get warehouses by state
     const warehousesByState = await Warehouse.aggregate([
-      { $match: { isActive: true } },
+      { $match: { ...matchQuery, isActive: true } },
       { $group: { _id: '$address.state', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);

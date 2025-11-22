@@ -87,6 +87,11 @@ const warehouseSchema = new mongoose.Schema({
       ref: 'Location'
     }
   ],
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Warehouse must have an owner (admin user who created it)']
+  },
   isActive: {
     type: Boolean,
     default: true

@@ -54,8 +54,19 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user',
+    enum: ['admin', 'manager', 'staff', 'auditor', 'supervisor'],
+    required: [true, 'Please provide a role'],
+  },
+  warehouses: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Warehouse',
+    }
+  ],
+  warehouseAssigned: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Warehouse',
+    default: null
   },
   otp: {
     type: String,
