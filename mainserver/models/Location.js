@@ -31,44 +31,6 @@ const locationSchema = new mongoose.Schema({
     min: [0, 'Capacity cannot be negative'],
     default: 0
   },
-  address: {
-    line1: {
-      type: String,
-      required: [true, 'Please provide address line 1'],
-      trim: true,
-      maxlength: [150, 'Address line 1 cannot exceed 150 characters']
-    },
-    line2: {
-      type: String,
-      trim: true,
-      maxlength: [150, 'Address line 2 cannot exceed 150 characters'],
-      default: ''
-    },
-    city: {
-      type: String,
-      required: [true, 'Please provide city'],
-      trim: true,
-      maxlength: [50, 'City cannot exceed 50 characters']
-    },
-    state: {
-      type: String,
-      required: [true, 'Please provide state'],
-      trim: true,
-      maxlength: [50, 'State cannot exceed 50 characters']
-    },
-    postalCode: {
-      type: String,
-      required: [true, 'Please provide postal code'],
-      trim: true,
-      maxlength: [20, 'Postal code cannot exceed 20 characters']
-    },
-    country: {
-      type: String,
-      required: [true, 'Please provide country'],
-      trim: true,
-      maxlength: [50, 'Country cannot exceed 50 characters']
-    }
-  },
   isActive: {
     type: Boolean,
     default: true

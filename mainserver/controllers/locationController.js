@@ -38,7 +38,7 @@ export const getLocations = async (req, res, next) => {
 
     // Execute query with population
     const locations = await Location.find(query)
-      .populate('warehouse', 'name shortCode address.city address.state')
+      .populate('warehouse', 'name shortCode')
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(startIndex);
@@ -72,7 +72,7 @@ export const getLocations = async (req, res, next) => {
 export const getLocation = async (req, res, next) => {
   try {
     const location = await Location.findById(req.params.id)
-      .populate('warehouse', 'name shortCode address.city address.state');
+      .populate('warehouse', 'name shortCode');
 
     if (!location) {
       return res.status(404).json({
@@ -105,7 +105,7 @@ export const createLocation = async (req, res, next) => {
     );
 
     // Populate warehouse info in response
-    await location.populate('warehouse', 'name shortCode address.city address.state');
+    await location.populate('warehouse', 'name shortCode');
 
     res.status(201).json({
       success: true,
@@ -161,7 +161,7 @@ export const updateLocation = async (req, res, next) => {
         new: true,
         runValidators: true
       }
-    ).populate('warehouse', 'name shortCode address.city address.state');
+    ).populate('warehouse', 'name shortCode');
 
     res.status(200).json({
       success: true,

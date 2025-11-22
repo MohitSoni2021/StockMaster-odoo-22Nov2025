@@ -7,6 +7,7 @@ const StockBalance = () => {
   const [stockBalances, setStockBalances] = useState([])
   const [products, setProducts] = useState([])
   const [warehouses, setWarehouses] = useState([])
+  const [locations, setLocations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [submitLoading, setSubmitLoading] = useState(false)
@@ -29,6 +30,17 @@ const StockBalance = () => {
         ...prev,
         [name]: parseFloat(value) || 0
       }))
+    } else if (name === 'warehouse') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        location: ''
+      }))
+      if (value) {
+        fetchLocationsByWarehouse(value)
+      } else {
+        setLocations([])
+      }
     } else {
       setFormData(prev => ({
         ...prev,
@@ -144,6 +156,25 @@ const StockBalance = () => {
     }
   }
 
+  const fetchLocationsByWarehouse = async (warehouseId) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/v1/locations?warehouse=${warehouseId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setLocations(result.data || [])
+      } else {
+        setLocations([])
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error)
+      setLocations([])
+    }
+  }
+
   useEffect(() => {
     fetchProducts()
     fetchWarehouses()
@@ -174,14 +205,31 @@ const StockBalance = () => {
     }
   }
 
-  const getProductName = (productId) => {
-    const product = products.find(p => p._id === productId)
-    return product ? product.name : productId
+  const getProductName = (product) => {
+    if (!product) return '-'
+    if (typeof product === 'object' && product.name) {
+      return product.name
+    }
+    const foundProduct = products.find(p => p._id === product)
+    return foundProduct ? foundProduct.name : product
   }
 
-  const getWarehouseName = (warehouseId) => {
-    const warehouse = warehouses.find(w => w._id === warehouseId)
-    return warehouse ? warehouse.name : warehouseId
+  const getWarehouseName = (warehouse) => {
+    if (!warehouse) return '-'
+    if (typeof warehouse === 'object' && warehouse.name) {
+      return warehouse.name
+    }
+    const foundWarehouse = warehouses.find(w => w._id === warehouse)
+    return foundWarehouse ? foundWarehouse.name : warehouse
+  }
+
+  const getLocationName = (location) => {
+    if (!location) return '-'
+    if (typeof location === 'object' && location.name) {
+      return `${location.name} (${location.shortCode})`
+    }
+    const foundLocation = locations.find(l => l._id === location)
+    return foundLocation ? `${foundLocation.name} (${foundLocation.shortCode})` : location
   }
 
   return (
@@ -229,6 +277,27 @@ const StockBalance = () => {
                 </select>
               </div>
             </div>
+
+            {formData.warehouse && (
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>Location</label>
+                  <select
+                    name='location'
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    className='w-full p-2 border border-gray-300 rounded-md'
+                  >
+                    <option value=''>Select a location (optional)</option>
+                    {locations.map(location => (
+                      <option key={location._id} value={location._id}>
+                        {location.name} ({location.shortCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
@@ -332,6 +401,7 @@ const StockBalance = () => {
                   <tr className='bg-gray-50'>
                     <th className='px-4 py-2 text-left'>Product</th>
                     <th className='px-4 py-2 text-left'>Warehouse</th>
+                    <th className='px-4 py-2 text-left'>Location</th>
                     <th className='px-4 py-2 text-center'>Quantity</th>
                     <th className='px-4 py-2 text-center'>Reserved</th>
                     <th className='px-4 py-2 text-center'>Available</th>
@@ -344,6 +414,7 @@ const StockBalance = () => {
                     <tr key={balance._id} className='border-t hover:bg-gray-50'>
                       <td className='px-4 py-2 font-medium'>{getProductName(balance.product)}</td>
                       <td className='px-4 py-2'>{getWarehouseName(balance.warehouse)}</td>
+                      <td className='px-4 py-2'>{getLocationName(balance.location)}</td>
                       <td className='px-4 py-2 text-center font-semibold'>{balance.quantity}</td>
                       <td className='px-4 py-2 text-center text-orange-600'>{balance.reservedQuantity}</td>
                       <td className='px-4 py-2 text-center text-green-600 font-semibold'>

@@ -16,58 +16,57 @@ const Location = () => {
     shortCode: '',
     type: 'rack',
     capacity: 0,
-    address: {
-      line1: '',
-      line2: '',
-      city: '',
-      state: '',
-      postalCode: '',
-      country: ''
-    },
     isActive: true
   })
 
   const LOCATION_TYPES = ['rack', 'room', 'bin', 'floor', 'zone']
 
+  const generateShortCode = (warehouseId, locationType, locationName) => {
+    const selectedWarehouse = warehouses.find(w => w._id === warehouseId)
+    if (!selectedWarehouse || !locationType || !locationName) {
+      return ''
+    }
+
+    const sanitizedName = locationName
+      .trim()
+      .replace(/\s+/g, '')
+      .toUpperCase()
+      .slice(0, 10)
+
+    return `${selectedWarehouse.shortCode}/${locationType.toUpperCase().slice(0, 3)}/${sanitizedName}`
+  }
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
 
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.')
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }))
-    } else {
-      setFormData(prev => ({
+    setFormData(prev => {
+      const updated = {
         ...prev,
         [name]: type === 'checkbox' ? checked : value
-      }))
-    }
+      }
+
+      if (!editingId && (name === 'warehouse' || name === 'type' || name === 'name')) {
+        updated.shortCode = generateShortCode(updated.warehouse, updated.type, updated.name)
+      }
+
+      return updated
+    })
   }
 
   useEffect(() => {
-    if (formData.warehouse && !editingId && !formData.shortCode) {
-      const selectedWarehouse = warehouses.find(w => w._id === formData.warehouse)
-      if (selectedWarehouse) {
-        const timestamp = Date.now().toString().slice(-6)
-        setFormData(prev => ({
-          ...prev,
-          shortCode: `${selectedWarehouse.shortCode}-LOC${timestamp}`.toUpperCase()
-        }))
-      }
+    if (!editingId && formData.warehouse && formData.type && formData.name) {
+      const newShortCode = generateShortCode(formData.warehouse, formData.type, formData.name)
+      setFormData(prev => ({
+        ...prev,
+        shortCode: newShortCode
+      }))
     }
-  }, [formData.warehouse, warehouses, editingId])
+  }, [formData.warehouse, formData.type, formData.name, warehouses, editingId])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.warehouse || !formData.name || !formData.shortCode || !formData.type ||
-        !formData.address.line1 || !formData.address.city || !formData.address.state ||
-        !formData.address.postalCode || !formData.address.country) {
+    if (!formData.warehouse || !formData.name || !formData.shortCode || !formData.type) {
       alert('Please fill in all required fields')
       return
     }
@@ -110,14 +109,6 @@ const Location = () => {
       shortCode: location.shortCode,
       type: location.type,
       capacity: location.capacity,
-      address: {
-        line1: location.address?.line1 || '',
-        line2: location.address?.line2 || '',
-        city: location.address?.city || '',
-        state: location.address?.state || '',
-        postalCode: location.address?.postalCode || '',
-        country: location.address?.country || ''
-      },
       isActive: location.isActive
     })
   }
@@ -154,14 +145,6 @@ const Location = () => {
       shortCode: '',
       type: 'rack',
       capacity: 0,
-      address: {
-        line1: '',
-        line2: '',
-        city: '',
-        state: '',
-        postalCode: '',
-        country: ''
-      },
       isActive: true
     })
   }
@@ -268,9 +251,10 @@ const Location = () => {
                   name='shortCode'
                   value={formData.shortCode}
                   onChange={handleInputChange}
-                  className='w-full p-2 border border-gray-300 rounded-md uppercase'
-                  placeholder='e.g., LOC001'
+                  className={`w-full p-2 border border-gray-300 rounded-md uppercase ${!editingId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  placeholder='Auto-generated: WH/TYPE/NAME'
                   required
+                  readOnly={!editingId}
                 />
               </div>
               <div>
@@ -300,83 +284,6 @@ const Location = () => {
                   placeholder='0'
                   min='0'
                 />
-              </div>
-            </div>
-
-            <div className='border-t pt-4'>
-              <h3 className='text-lg font-medium mb-3'>Address Information</h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div className='md:col-span-2'>
-                  <label className='block text-sm font-medium mb-1'>Address Line 1 *</label>
-                  <input
-                    type='text'
-                    name='address.line1'
-                    value={formData.address.line1}
-                    onChange={handleInputChange}
-                    className='w-full p-2 border border-gray-300 rounded-md'
-                    placeholder='Street address'
-                    required
-                  />
-                </div>
-                <div className='md:col-span-2'>
-                  <label className='block text-sm font-medium mb-1'>Address Line 2</label>
-                  <input
-                    type='text'
-                    name='address.line2'
-                    value={formData.address.line2}
-                    onChange={handleInputChange}
-                    className='w-full p-2 border border-gray-300 rounded-md'
-                    placeholder='Apartment, floor, etc. (optional)'
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium mb-1'>City *</label>
-                  <input
-                    type='text'
-                    name='address.city'
-                    value={formData.address.city}
-                    onChange={handleInputChange}
-                    className='w-full p-2 border border-gray-300 rounded-md'
-                    placeholder='City'
-                    required
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium mb-1'>State *</label>
-                  <input
-                    type='text'
-                    name='address.state'
-                    value={formData.address.state}
-                    onChange={handleInputChange}
-                    className='w-full p-2 border border-gray-300 rounded-md'
-                    placeholder='State/Province'
-                    required
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium mb-1'>Postal Code *</label>
-                  <input
-                    type='text'
-                    name='address.postalCode'
-                    value={formData.address.postalCode}
-                    onChange={handleInputChange}
-                    className='w-full p-2 border border-gray-300 rounded-md'
-                    placeholder='Postal code'
-                    required
-                  />
-                </div>
-                <div>
-                  <label className='block text-sm font-medium mb-1'>Country *</label>
-                  <input
-                    type='text'
-                    name='address.country'
-                    value={formData.address.country}
-                    onChange={handleInputChange}
-                    className='w-full p-2 border border-gray-300 rounded-md'
-                    placeholder='Country'
-                    required
-                  />
-                </div>
               </div>
             </div>
 
@@ -442,7 +349,6 @@ const Location = () => {
                     <th className='px-4 py-2 text-left'>Name</th>
                     <th className='px-4 py-2 text-left'>Code</th>
                     <th className='px-4 py-2 text-left'>Warehouse</th>
-                    <th className='px-4 py-2 text-left'>Address</th>
                     <th className='px-4 py-2 text-left'>Type</th>
                     <th className='px-4 py-2 text-left'>Capacity</th>
                     <th className='px-4 py-2 text-left'>Status</th>
@@ -461,12 +367,6 @@ const Location = () => {
                             : location.warehouse
                           }
                         </span>
-                      </td>
-                      <td className='px-4 py-2'>
-                        <div className='text-sm'>
-                          <div>{location.address?.city}, {location.address?.state}</div>
-                          <div className='text-gray-500'>{location.address?.postalCode}, {location.address?.country}</div>
-                        </div>
                       </td>
                       <td className='px-4 py-2'>
                         <span className='px-2 py-1 rounded text-xs bg-blue-100 text-blue-800'>
